@@ -71,9 +71,9 @@ public:
    //
 
    class  iterator;
-   iterator begin()  { return iterator(); }
-   iterator rbegin() { return iterator(); }
-   iterator end()    { return iterator(); }
+   iterator begin()  { return iterator(pHead); }
+   iterator rbegin() { return iterator(pTail); }
+   iterator end()    { return iterator(nullptr); }
 
    //
    // Access
@@ -106,8 +106,8 @@ public:
    // Status
    //
 
-   bool empty()  const { return true; }
-   size_t size() const { return 99;   }
+   bool empty()  const { return (numElements == 0); }
+   size_t size() const { return numElements;   }
 
 
 private:
@@ -145,6 +145,7 @@ public:
    }
    Node(      T && data)  
    {
+       this->data = data;
       pNext = pPrev = nullptr;
    }
 
@@ -172,53 +173,72 @@ public:
    // constructors, destructors, and assignment operator
    iterator() 
    {
-      p = new typename list <T> ::Node;
+      p = nullptr;
    }
    iterator(Node * p) 
    {
-      p = new typename list <T> ::Node;
+      this->p = p;
    }
    iterator(const iterator  & rhs) 
    {
-      p = new typename list <T> ::Node;
+      p = rhs.p;
    }
    iterator & operator = (const iterator & rhs)
    {
+       this->p = rhs.p;
       return *this;
    }
    
    // equals, not equals operator
-   bool operator == (const iterator & rhs) const { return true; }
-   bool operator != (const iterator & rhs) const { return true; }
+   bool operator == (const iterator & rhs) const { return (this->p == rhs.p); }
+   bool operator != (const iterator & rhs) const { return (this->p != rhs.p); }
 
    // dereference operator, fetch a node
    T & operator * ()
    {
-      return *(new T);
+      return (p->data);
    }
 
    // postfix increment
    iterator operator ++ (int postfix)
    {
+       if (p->pNext)
+       {
+           iterator temp(*this);
+           this->p = p->pNext;
+           return temp;
+       }
       return *this;
    }
 
    // prefix increment
    iterator & operator ++ ()
    {
-      return *this;
+       if (p->pNext)
+           this->p = p->pNext;
+     
+       return *this;
    }
    
    // postfix decrement
    iterator operator -- (int postfix)
    {
-      return *this;
+       if (p->pPrev)
+       {
+           iterator temp(*this);
+           this->p = p->pPrev;
+           return temp;
+       }
+       return *this;
    }
 
    // prefix decrement
    iterator & operator -- ()
    {
-      return *this;
+       if (p->pPrev)
+           this->p = p->pPrev;
+
+       return *this;
    } 
 
    // two friends who need to access p directly
@@ -340,8 +360,8 @@ list <T> ::list() : numElements(0), pHead(nullptr), pTail(nullptr) {}
 template <typename T>
 list <T> ::list(list& rhs) 
 {
-   numElements = 99;
-   pHead = pTail = new list <T> ::Node();
+    pHead = pTail = nullptr;
+    numElements = 0;
 }
 
 /*****************************************
@@ -417,13 +437,31 @@ void list <T> :: clear()
 template <typename T>
 void list <T> :: push_back(const T & data)
 {
+    // create the new node and add it to the back.
+    Node* pNew = new Node(data);
+    pNew->pPrev = pTail;
 
+    if (pTail)
+        pTail->pNext = pNew;
+    else pHead = pNew;
+
+    pTail = pNew;
+    numElements++;
 }
 
 template <typename T>
 void list <T> ::push_back(T && data)
 {
+    // create the new node and add it to the back.
+    Node* pNew = new Node(data);
+    pNew->pPrev = pTail;
 
+    if (pTail)
+        pTail->pNext = pNew;
+    else pHead = pNew;
+
+    pTail = pNew;
+    numElements++;
 }
 
 /*********************************************
@@ -436,13 +474,31 @@ void list <T> ::push_back(T && data)
 template <typename T>
 void list <T> :: push_front(const T & data)
 {
+    // create the new node and add it to the front.
+    Node* pNew = new Node(data);
+    pNew->pNext = pHead;
 
+    if (pHead)
+        pHead->pPrev = pNew;
+    else pTail = pNew;
+
+    pHead = pNew;
+    numElements++;
 }
 
 template <typename T>
 void list <T> ::push_front(T && data)
 {
+    // create the new node and add it to the front.
+    Node* pNew = new Node(data);
+    pNew->pNext = pHead;
 
+    if (pHead)
+        pHead->pPrev = pNew;
+    else pTail = pNew;
+
+    pHead = pNew;
+    numElements++;
 }
 
 
@@ -456,7 +512,23 @@ void list <T> ::push_front(T && data)
 template <typename T>
 void list <T> ::pop_back()
 {
-
+    // select the tail node to be removed
+    if (pTail)
+    {
+        Node* pDelete = pTail;
+        if (pTail != pHead)
+        {
+            pTail->pPrev->pNext = nullptr;
+            pTail = pTail->pPrev;
+        }
+        // reset both head and tail if list only has 1 element
+        else
+        {
+            pHead = pTail = nullptr;
+        }
+        delete pDelete;
+        numElements--;
+    }
 }
 
 /*********************************************
@@ -469,7 +541,23 @@ void list <T> ::pop_back()
 template <typename T>
 void list <T> ::pop_front()
 {
-
+        // select the head node to be removed
+        if (pHead)
+        {
+            Node* pDelete = pHead;
+            if (pTail != pHead)
+            {
+                pHead->pNext->pPrev = nullptr;
+                pHead = pHead->pNext;
+            }
+            // reset both head and tail if list only has 1 element
+            else
+            {
+                pHead = pTail = nullptr;
+            }
+            delete pDelete;
+            numElements--;
+        }
 }
 
 /*********************************************
@@ -482,7 +570,10 @@ void list <T> ::pop_front()
 template <typename T>
 T & list <T> :: front()
 {
-   return *(new T);
+    if(!empty())
+        return pHead->data;
+    const char* sError = "ERROR: unable to access data from an empty list";
+    throw sError;
 }
 
 /*********************************************
@@ -495,7 +586,10 @@ T & list <T> :: front()
 template <typename T>
 T & list <T> :: back()
 {
-   return *(new T);
+    if (!empty())
+        return pTail->data;
+    const char* sError = "ERROR: unable to access data from an empty list";
+    throw sError;
 }
 
 /******************************************
