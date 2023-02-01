@@ -140,6 +140,7 @@ public:
    }
    Node(const T &  data)  
    {
+       this->data = data;
       pNext = pPrev = nullptr;
    }
    Node(      T && data)  
@@ -237,8 +238,34 @@ private:
 template <typename T>
 list <T> ::list(size_t num, const T & t) 
 {
-   numElements = 99;
-   pHead = pTail = new list <T> ::Node();
+    if (num)
+    {
+        // create the head of the list.
+        pHead = new Node(t);
+        pHead->pPrev = nullptr;
+        Node* pPrev = pHead;
+        Node* pNew = nullptr;
+
+        // add the remaining nodes
+        for (int i = 1; i < num; i++)
+        {
+            pNew = new Node(t);
+            pNew->pPrev = pPrev;
+            pNew->pPrev->pNext = pNew;
+            pPrev = pNew;
+        }
+
+        // assign the tail
+        pNew->pNext = nullptr;
+        pTail = pNew;
+    }
+
+    // if size is 0, set everything to null
+    else
+    {
+        pHead = pTail = nullptr;
+    }
+    numElements = num;
 }
 
 /*****************************************
@@ -271,19 +298,41 @@ list <T> ::list(const std::initializer_list<T>& il)
 template <typename T>
 list <T> ::list(size_t num)
 {
-   numElements = 99;
-   pHead = pTail = new list <T> ::Node();
+   if (num)
+   {
+       // create the head of the list.
+       pHead = new Node(0);
+       pHead->pPrev = nullptr;
+       Node* pPrev = pHead;
+       Node* pNew = nullptr;
+
+       // add the remaining nodes
+       for (int i = 1; i < num; i++)
+       {
+           pNew = new Node(0);
+           pNew->pPrev = pPrev;
+           pNew->pPrev->pNext = pNew;
+           pPrev = pNew;
+       }
+
+       // assign the tail
+       pNew->pNext = nullptr;
+       pTail = pNew;
+   }
+
+   // if size is 0, set everything to null
+   else
+   {
+       pHead = pTail = nullptr;
+   }
+   numElements = num;
 }
 
 /*****************************************
  * LIST :: DEFAULT constructors
  ****************************************/
 template <typename T>
-list <T> ::list() 
-{
-   numElements = 99;
-   pHead = pTail = new list <T> ::Node();
-}
+list <T> ::list() : numElements(0), pHead(nullptr), pTail(nullptr) {}
 
 /*****************************************
  * LIST :: COPY constructors
