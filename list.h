@@ -117,7 +117,7 @@ private:
    // member variables
    size_t numElements; // though we could count, it is faster to keep a variable
    Node * pHead;    // pointer to the beginning of the list
-   Node * pTail;    // pointer to the ending of the list
+   Node * pTail;    // pointer to the ending of the list 
 };
 
 /*************************************************

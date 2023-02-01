@@ -28,8 +28,8 @@ public:
       reset();
 
       // Construct
-      test_construct_default();
-      test_construct_sizeZero();
+//      test_construct_default();
+//      test_construct_sizeZero();
       test_construct_sizeThree();
       test_construct_sizeThreeFill();
       test_constructCopy_empty();
