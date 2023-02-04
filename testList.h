@@ -33,7 +33,7 @@ public:
       test_construct_sizeThree();
       test_construct_sizeThreeFill();
 
-      /* these are not passing
+     
       test_constructCopy_empty();
       test_constructCopy_standard();
       test_constructMove_empty();
@@ -56,7 +56,7 @@ public:
       test_assignInit_sameSize();
       test_assignInit_rightBigger();
       test_assignInit_leftBigger();
-      */
+      
 
       // Iterator
       test_iterator_begin_empty();
@@ -84,7 +84,7 @@ public:
       test_pushfront_moveEmpty();
       test_pushfront_moveStandard();
 
-      /* these are not passing
+      
       test_insert_empty();
       test_insert_standardFront();
       test_insert_standardMiddle();
@@ -92,13 +92,12 @@ public:
       test_insertMove_empty();
       test_insertMove_standardFront();
       test_insertMove_standardMiddle();
-      */
+      
 
       // Remove
-      /* these are not passing
       test_clear_empty();
       test_clear_standard();
-      */
+      
 
       test_popback_empty();
       test_popback_standard();
@@ -107,12 +106,12 @@ public:
       test_popfront_standard();
       test_popfront_single();
 
-      /* these are not passing
+      
       test_erase_empty();
       test_erase_standardFront();
       test_erase_standardMiddle();
       test_erase_standardEnd();
-      */
+      
 
       // Status
       test_size_empty();
