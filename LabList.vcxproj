@@ -22,6 +22,7 @@
     <ClCompile Include="testList.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bst.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="testList.h" />
     <ClInclude Include="unitTest.h" />
