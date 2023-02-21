@@ -149,9 +149,9 @@ namespace custom
         {
             pLeft = pRight = pParent = nullptr;
         }
-        BNode(T&& t) : data{ T(std::move(t))}
+        BNode(T&& t) : data{ T(std::move(t)) }
         {
-            
+
             pLeft = pRight = pParent = nullptr;
         }
 
@@ -231,7 +231,9 @@ namespace custom
         iterator& operator ++ ();
         iterator   operator ++ (int postfix)
         {
-            return *this;
+            iterator previous = *this;
+            ++(*this);
+            return previous;
         }
         iterator& operator -- ();
         iterator   operator -- (int postfix)
@@ -373,7 +375,7 @@ namespace custom
     BST <T>& BST <T> :: operator = (const std::initializer_list<T>& il)
     {
         clear();
-        for (auto &&element : il) {
+        for (auto&& element : il) {
             insert(element);
         }
         return *this;
@@ -462,7 +464,7 @@ namespace custom
                         pairReturn.second = true;
                     }
                 }
-                
+
             }
             assert(root != nullptr);
             numElements++;
@@ -477,7 +479,7 @@ namespace custom
             throw "Error: unable to allocate a node";
         }
         return pairReturn;
-        
+
     }
 
     template <typename T>
@@ -830,5 +832,3 @@ namespace custom
 
 
 } // namespace custom
-
-
