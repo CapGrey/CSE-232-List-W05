@@ -59,6 +59,7 @@ public:
            container.push_back(*(it));
            
        }
+       container.shrink_to_fit();
        
        
        
@@ -114,7 +115,10 @@ private:
 template <class T>
 const T & priority_queue <T> :: top() const
 {
-   return *(new T);
+    if (container.empty()) {
+        throw "std:out_of_range";
+   }
+   return container[0];
 }
 
 /**********************************************
@@ -133,10 +137,12 @@ void priority_queue <T> :: pop()
 template <class T>
 void priority_queue <T> :: push(const T & t)
 {
+    container.push_back(t);
 }
 template <class T>
 void priority_queue <T> :: push(T && t)
 {
+    container.push_back(std::move(t));
 }
 
 /************************************************
@@ -148,6 +154,37 @@ void priority_queue <T> :: push(T && t)
 template <class T>
 bool priority_queue <T> :: percolateDown(size_t indexHeap)
 {
+    //find the left and right child (if the index isnt 0)
+    indexHeap = indexHeap - 1;
+    int indexLeft = indexHeap * 2;
+    int indexRight = (indexLeft + 1);
+
+
+    
+    
+    
+    int indexBigger;
+    if (indexHeap == 0) { //we cant multiply by 0 and get ammeaningful result, so we need to set the values manually
+        indexLeft = 1;
+        indexRight = 2;
+    }
+    
+
+    //find which child is bigger
+    if (indexRight <= container.size() && container[indexLeft] < container[indexRight])
+        indexBigger = indexRight;
+    else
+        indexBigger = indexLeft;
+
+    //if the bigger child is greater than the parent, swap them
+    if (container[indexHeap] < container[indexBigger]) {
+        std::swap(container[indexHeap], container[indexBigger]);
+        percolateDown(indexBigger+1);
+        return true;
+    }
+    
+
+
    return false;
 }
 
@@ -160,7 +197,7 @@ template <class T>
 inline void swap(custom::priority_queue <T>& lhs,
                  custom::priority_queue <T>& rhs)
 {
-    custom::swap(lhs, rhs);
+    lhs.container.swap(rhs.container);
 }
 
 };
