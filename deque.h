@@ -1,449 +1,1784 @@
 /***********************************************************************
  * Header:
- *    DEQUE
+ *    TEST DEQUE
  * Summary:
- *    Our custom implementation of a deque
- *      __       ____       ____         __
- *     /  |    .'    '.   .'    '.   _  / /
- *     `| |   |  .--.  | |  .--.  | (_)/ /
- *      | |   | |    | | | |    | |   / / _
- *     _| |_  |  `--'  | |  `--'  |  / / (_)
- *    |_____|  '.____.'   '.____.'  /_/
- *
- *    This will contain the class definition of:
- *        deque                 : A class that represents a deque
- *        deque::iterator       : An iterator through a deque
+ *    Unit tests for deque
  * Author
- *    <your names here>
+ *    Br. Helfrich
  ************************************************************************/
 
 #pragma once
 
- // Debug stuff
+#ifdef DEBUG
+
+#include "deque.h"
+#include "unitTest.h"
+
+#include <vector>
 #include <cassert>
-#include <utility>
+#include <memory>
+#include <iostream>
 
-class TestDeque;    // forward declaration for TestDeque unit test class
-
-namespace custom
+class TestDeque : public UnitTest
 {
+public:
+   void run()
+   {
+      reset();
 
-    /******************************************************
-     * DEQUE
-     *   0   1   2   3   4
-     * +---+---+---+---+---+
-     * |   | A | B | C |   |
-     * +---+---+---+---+---+
-     * iaFront = 1
-     * numElements = 3
-     * numCapacity = 5
-     *****************************************************/
-    template <class T>
-    class deque
-    {
-        friend class ::TestDeque; // give unit tests access to the privates
-    public:
+      // Utilities
+      test_iaFromID_trivial();
+      test_iaFromID_slided();
+      test_iaFromID_wrapped();
+      test_iaFromID_negSlide();
 
-        // 
-        // Construct
-        //
-        deque()
-        {
-            data = nullptr;
-            numElements = 0;
-            numCapacity = 0;
-            iaFront = 0;
-        }
-        deque(int newCapacity);
-        deque(const deque <T>& rhs);
-        ~deque()
-        {
-        }
+      // Construct
+      test_construct_default();
+      test_constructCopy_empty();
+      test_constructCopy_standard();
 
-        //
-        // Assign
-        //
-        deque<T>& operator = (const deque <T>& rhs);
+      // Assign
+      test_assign_emptyToEmpty();
+      test_assign_standardToEmpty();
+      test_assign_emptyToStandard();
+      test_assign_smallToBig();
+      test_assign_bigToSmall();
+      test_assign_unwrap();
+      test_assign_unwrapNegative();
 
-        //
-        // Iterator
-        //
-        class iterator;
-        iterator begin()
-        {
-            return iterator(this, iaFront);
-        }
-        iterator end()
-        {
-           
-          return iterator(this, numElements);
-          
-        }
+      // Iterator
+      test_begin_standard();
+      test_end_standard();
+      test_iterator_increment_standardMiddle();
+      test_iterator_dereferenceRead_standard();
+      test_iterator_dereferenceRead_wrap();
+      test_iterator_dereferenceRead_wrapNegative();
+      test_iterator_dereferenceWrite_standard();
+      test_iterator_difference_standard();
+      test_iterator_addonto_standard();
 
-        //
-        // Access
-        //
-        T& front();
-        T& back();
-        const T& front() const;
-        const T& back()  const;
-        const T& operator[](size_t index) const;
-        T& operator[](size_t index);
+      // Access
+      test_frontRead_standard();
+      test_frontRead_wrap();
+      test_frontRead_wrapNegative();
+      test_frontWrite_standard();
+      test_backRead_standard();
+      test_backRead_wrap();
+      test_backRead_wrapNegative();
+      test_backWrite_standard();
+      test_subscriptRead_standard();
+      test_subscriptRead_wrap();
+      test_subscriptRead_wrapNegative();
+      test_subscriptWrite_standard();
 
-        // 
-        // Insert
-        //
-        void push_front(const T& t);
-        void push_back(const T& t);
+      // Insert
+      test_pushback_empty();
+      test_pushback_room();
+      test_pushback_grow();
+      test_pushback_growWrap();
+      test_pushfront_empty();
+      test_pushfront_room();
+      test_pushfront_grow();
+      test_pushfront_growWrap();
 
-        //
-        // Remove
-        //
-        void clear()
-        {
-            for (int id = 0; id < numElements; id++)
-                data[id] = NULL;
-            numElements = 0;
-        }
-        void pop_front();
-        void pop_back();
+      // Remove
+      test_clear_empty();
+      test_clear_standard();
+      test_popback_standard();
+      test_popback_wrap();
+      test_popback_wrapNegative();
+      test_popfront_standard();
+      test_popfront_wrap();
+      test_popfront_wrapNegative();
 
-        // 
-        // Status
-        //
-        size_t size() const
-        {
-            return numElements;
-        }
-        bool empty() const
-        {
-            return (size() == 0);
-        }
+      // Status
+      test_size_empty();
+      test_size_standard();
+      test_empty_empty();
+      test_empty_standard();
 
 
-    private:
+      report("Deque");
+   }
 
-        // fetch array index from the deque index
-        int iaFromID(int id) const
-        {
-            // ensure that aiFront is a possitive value
-            int frontId = iaFront;
+   /***************************************
+    * UTILITIES
+    ***************************************/
 
-            if (frontId < 0)
-            {
-                frontId = frontId % (int)numCapacity;
-                frontId = numCapacity + frontId;
-            }
-               
-            if (id < 0) {
-                id += numElements - 1;
-            }
-            int ia = (id + frontId) % numCapacity;
-            return ia;
-        }
+   // test iaFromID where iaFront = 0
+   void test_iaFromID_trivial()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      int ia0 = d.iaFromID(/*id=*/0);
+      int ia1 = d.iaFromID(/*id=*/1);
+      int ia2 = d.iaFromID(/*id=*/2);
+      // verify
+      assertUnit(ia0 == 0);
+      assertUnit(ia1 == 1);
+      assertUnit(ia2 == 2);
+   }  // teardown
 
-        void resize(int newCapacity = 0);
+   // test iaFromID where iaFront = 2
+   void test_iaFromID_slided()
+   {  // setup
+      //             iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+    +    +
+      //    | 26 | 31 | 11 | 26   31  
+      //    +----+----+----+    +    +
+      // id = 1    2    0    1    2
+      custom::deque<int> d;
+      d.data = new int[3];
+      d.data[2] = 11;
+      d.data[0] = 26;
+      d.data[1] = 31;
+      d.numCapacity = 3;
+      d.numElements = 3;
+      d.iaFront = 2;
+      // exercise
+      int ia0 = d.iaFromID(/*id=*/0);
+      int ia1 = d.iaFromID(/*id=*/1);
+      int ia2 = d.iaFromID(/*id=*/2);
+      // verify
+      assertUnit(ia0 == 2);
+      assertUnit(ia1 == 0);
+      assertUnit(ia2 == 1);
+   }  // teardown
 
-        // member variables
-        T* data;           // dynamically allocated data for the deque
-        size_t numCapacity; // the size of the data array
-        size_t numElements; // number of elements in the deque
-        int iaFront;        // the index of the first item in the array
-    };
+   // test iaFromID where iaFront = 6
+   void test_iaFromID_wrapped()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      d.data = new int[3];
+      d.data[0] = 11;
+      d.data[1] = 26;
+      d.data[2] = 31;
+      d.numCapacity = 3;
+      d.numElements = 3;
+      d.iaFront = 6;
+      // exercise
+      int ia0 = d.iaFromID(/*id=*/0);
+      int ia1 = d.iaFromID(/*id=*/1);
+      int ia2 = d.iaFromID(/*id=*/2);
+      // verify
+      assertUnit(ia0 == 0);
+      assertUnit(ia1 == 1);
+      assertUnit(ia2 == 2);
+   }  // teardown
+
+   // test iaFromID where iaFront = -1
+   void test_iaFromID_negSlide()
+   {  // setup
+      //     iaFront
+      // ia = -1    0    1    2    
+      //     +    +----+----+----+ 
+      //       11 | 26 | 31 | 11 | 
+      //     +    +----+----+----+
+      // id =  0    1    2    0
+      custom::deque<int> d;
+      d.data = new int[3];
+      d.data[0] = 26;
+      d.data[1] = 31;
+      d.data[2] = 11;
+      d.numCapacity = 3;
+      d.numElements = 3;
+      d.iaFront = -1;
+      // exercise
+      int ia0 = d.iaFromID(/*id=*/0);
+      int ia1 = d.iaFromID(/*id=*/1);
+      int ia2 = d.iaFromID(/*id=*/2);
+      // verify
+      assertUnit(ia0 == 2);
+      assertUnit(ia1 == 0);
+      assertUnit(ia2 == 1);
+   }  // teardown
+
+   // test iaFromID where iaFront = -6
+   void test_iaFromID_negWrapped()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      d.data = new int[3];
+      d.data[0] = 11;
+      d.data[1] = 26;
+      d.data[2] = 31;
+      d.numCapacity = 3;
+      d.numElements = 3;
+      d.iaFront = -6;
+      // exercise
+      int ia0 = d.iaFromID(/*id=*/0);
+      int ia1 = d.iaFromID(/*id=*/1);
+      int ia2 = d.iaFromID(/*id=*/2);
+      // verify
+      assertUnit(ia0 == 0);
+      assertUnit(ia1 == 1);
+      assertUnit(ia2 == 2);
+   }  // teardown
+
+   /***************************************
+    * CONSTRUCT
+    ***************************************/
+
+   // default constructor, no allocations
+   void test_construct_default()
+   {  // setup
+      std::allocator<custom::deque<int>> alloc;
+      custom::deque<int> d;
+      d.iaFront = 66;
+      d.numCapacity = 77;
+      d.numElements = 88;
+      d.data = (int*)0xBAADF00D;
+      // exercise
+      alloc.construct(&d);  // just call the constructor by itself
+      // verify
+      assertEmptyFixture(d);
+   }  // teardown
+
+    // copy constructor of an empty list
+   void test_constructCopy_empty()
+   {  // setup
+      custom::deque<int> dSrc;
+      // exercise
+      custom::deque<int> dDes(dSrc);
+      // verify
+      assertEmptyFixture(dSrc);
+      assertEmptyFixture(dDes);
+   }  // teardown
+
+   // copy constructor of a 3-element collection
+   void test_constructCopy_standard()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> dSrc;
+      setupStandardFixture(dSrc);
+      // exercise
+      custom::deque<int> dDes(dSrc);
+      // verify
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dSrc);
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dDes);
+      // teardown
+   }
+
+   /***************************************
+    * ASSIGN
+    ***************************************/
+
+    // use the assignment operator when both are empty
+   void test_assign_emptyToEmpty()
+   {  // setup
+      custom::deque<int> dSrc;
+      custom::deque<int> dDes;
+      // exercise
+      dDes = dSrc;
+      // verify
+      assertEmptyFixture(dSrc);
+      assertEmptyFixture(dDes);
+   }  // teardown
+
+   // From the standard to fixture to an empty list
+   void test_assign_standardToEmpty()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> dSrc;
+      setupStandardFixture(dSrc);
+      custom::deque<int> dDes;
+      // exercise
+      dDes = dSrc;
+      // verify
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dSrc);
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dDes);
+      // teardown
+   }
+
+   // From the empty list to the standard to fixture
+   void test_assign_emptyToStandard()
+   {  // setup
+      custom::deque<int> dSrc;
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> dDes;
+      setupStandardFixture(dDes);
+      // exercise
+      dDes = dSrc;
+      // verify
+      assertEmptyFixture(dSrc);
+      assertEmptyFixture(dDes);
+   }  // teardown
+
+   void test_assign_bigToSmall()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> dSrc;
+      setupStandardFixture(dSrc);
+      //   iaFront
+      // ia = 0    1  
+      //    +----+----+
+      //    | 85 | 99 |
+      //    +----+----+
+      // id = 0    1   
+      custom::deque<int> dDes;
+      dDes.data = new int[2];
+      dDes.data[0] = 85;
+      dDes.data[1] = 99;
+      dDes.numCapacity = 2;
+      dDes.numElements = 2;
+      dDes.iaFront = 0;
+      // exercise
+      dDes = dSrc;
+      // verify
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dSrc);
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dDes);
+      // teardown
+   }
+
+   // assign a small list of 3 onto a larger one of 4
+   void test_assign_smallToBig()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> dSrc;
+      setupStandardFixture(dSrc);
+      //   iaFront
+      // ia = 0    1    2    3
+      //    +----+----+----+----+
+      //    | 61 | 73 | 85 | 99 |
+      //    +----+----+----+----+ 
+      // id = 0    1    2    3
+      custom::deque<int> dDes;
+      dDes.data = new int[4];
+      dDes.data[0] = 61;
+      dDes.data[1] = 73;
+      dDes.data[2] = 85;
+      dDes.data[3] = 99;
+      dDes.numCapacity = 4;
+      dDes.numElements = 4;
+      dDes.iaFront = 0;
+      // exercise
+      dDes = dSrc;
+      // verify
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dSrc);
+      //   iaFront
+      // ia = 0    1    2    3
+      //    +----+----+----+----+
+      //    | 11 | 26 | 31 |    |
+      //    +----+----+----+----+ 
+      // id = 0    1     2
+      assertUnit(dDes.numCapacity == 4);
+      assertUnit(dDes.iaFront == 0);
+      assertUnit(dDes.numElements == 3);
+      assertUnit(dDes.data != nullptr);
+      if (dDes.data != nullptr && dDes.numCapacity >= 3)
+      {
+         assertUnit(dDes.data[0] = 11);
+         assertUnit(dDes.data[1] = 26);
+         assertUnit(dDes.data[2] = 31);
+      }
+      // teardown
+   }
+
+   // From the standard to fixture to an empty list
+   void test_assign_unwrap()
+   {  // setup
+      //             iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+    +    +
+      //    | 26 | 31 | 11 | 26   31  
+      //    +----+----+----+    +    +
+      // id = 1    2    0    1    2
+      custom::deque<int> dSrc;
+      dSrc.data = new int[3];
+      dSrc.data[0] = 26;
+      dSrc.data[1] = 31;
+      dSrc.data[2] = 11;
+      dSrc.numCapacity = 3;
+      dSrc.numElements = 3;
+      dSrc.iaFront = 2;
+      custom::deque<int> dDes;
+      // exercise
+      dDes = dSrc;
+      // verify
+      //             iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+    +    +
+      //    | 26 | 31 | 11 | 26   31  
+      //    +----+----+----+    +    +
+      // id =  1   2    0    1    2
+      assertUnit(dSrc.numCapacity == 3);
+      assertUnit(dSrc.iaFront == 2);
+      assertUnit(dSrc.numElements == 3);
+      assertUnit(dSrc.data != nullptr);
+      if (dSrc.data != nullptr && dSrc.numCapacity == 3)
+      {
+         assertUnit(dSrc.data[0] = 26);
+         assertUnit(dSrc.data[1] = 31);
+         assertUnit(dSrc.data[2] = 11);
+      }
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dDes);
+      // teardown
+   }
+
+   // From the standard to fixture to an empty list
+   void test_assign_unwrapNegative()
+   {  // setup
+      //    iaFront
+      // ia = -4   -3   -2   -1   0    1    2    
+      //     +   +    +    +    +----+----+----+ 
+      //      11   26   31   11 | 26 | 31 | 11 |
+      //     +   +    +    +    +----+----+----+
+      // id = 0    1    2    0    1    2    0    
+      custom::deque<int> dSrc;
+      dSrc.data = new int[3];
+      dSrc.data[0] = 26;
+      dSrc.data[1] = 31;
+      dSrc.data[2] = 11;
+      dSrc.numCapacity = 3;
+      custom::deque<int> dDes;
+      dSrc.iaFront = -4;
+      dSrc.numElements = 3;
+      // exercise
+      dDes = dSrc;
+      // verify
+      //    iaFront
+      // ia = -4   -3   -2   -1   0    1    2    
+      //     +   +    +    +    +----+----+----+ 
+      //      11   26   31   11 | 26 | 31 | 11 |
+      //     +   +    +    +    +----+----+----+
+      // id = 0    1    2    0    1    2    0    
+      assertUnit(dSrc.numCapacity == 3);
+      assertUnit(dSrc.numElements == 3);
+      assertUnit(dSrc.iaFront == -4);
+      assertUnit(dSrc.data != nullptr);
+      if (dSrc.data != nullptr && dSrc.numCapacity == 3)
+      {
+         assertUnit(dSrc.data[0] = 26);
+         assertUnit(dSrc.data[1] = 31);
+         assertUnit(dSrc.data[2] = 11);
+      }
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertStandardFixture(dDes);
+      // teardown
+   }
+
+   /***************************************
+    * ITERATOR
+    ***************************************/
+
+   // get the begin iterator from the standard fixture
+   void test_begin_standard()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //           it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      it = d.begin();
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //     it
+      assertUnit(it.id == 0);
+      assertUnit(it.pDeque == &d);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // get the end iterator from the standard fixture
+   void test_end_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1    2
+      //           it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      custom::deque<int>::iterator it;
+      it.pDeque = &d;
+      it.id = 1;
+      // exercise
+      it = d.end();
+      //    +----+----+----+    +
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+    + 
+      // id = 0    1    2    3
+      //                     it
+      assertUnit(it.id == 3);
+      assertUnit(it.pDeque == &d);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+    // test the iterator to increment from the middle of the standard fixture
+   void test_iterator_increment_standardMiddle()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1    2
+      //           it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      it.id = 1;
+      it.pDeque = &d;
+      // exercise
+      ++it;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1    2
+      //                it
+      assertUnit(it.id == 2);
+      assertUnit(it.pDeque == &d);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // the the iterator's dereference operator to access an item from the list
+   void test_iterator_dereferenceRead_standard()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1    2
+      //          it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      it.id = 1;
+      it.pDeque = &d;
+      int iReturn = 99;
+      // exercise
+      iReturn = *it;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1    2
+      //           it
+      assertUnit(iReturn == 26);
+      assertUnit(it.id == 1);
+      assertUnit(it.pDeque == &d);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // the the iterator's dereference operator to access an item from the list
+   void test_iterator_dereferenceRead_wrap()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      //                                         it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      it.id = 1;
+      it.pDeque = &d;
+      int iReturn = 99;
+      // exercise
+      iReturn = *it;
+      // verify
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      //                                         it
+      assertUnit(iReturn == 26);
+      assertUnit(it.id == 1);
+      assertUnit(it.pDeque == &d);
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // the the iterator's dereference operator to access an item from the list
+   void test_iterator_dereferenceRead_wrapNegative()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      //            it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      it.id = 1;
+      it.pDeque = &d;
+      int iReturn = 99;
+      // exercise
+      iReturn = *it;
+      // verify
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      //            it
+      assertUnit(iReturn == 26);
+      assertUnit(it.id == 1);
+      assertUnit(it.pDeque == &d);
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // the the iterator's dereference operator to update an item from the list
+   void test_iterator_dereferenceWrite_standard()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //    +----+----+----+
+      //    | 11 | 99 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //           it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.data[1] = 99;
+      it.id = 1;
+      it.pDeque = &d;
+      // exercise
+      *it = 26;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //           it
+      assertUnit(it.id == 1);
+      assertUnit(it.pDeque == &d);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // the difference between two iterators
+   void test_iterator_difference_standard()
+   {  // setup
+      custom::deque<int>::iterator it1;
+      custom::deque<int>::iterator it2;
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //     it1        it2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      it1.id = 0;
+      it2.id = 2;
+      it1.pDeque = it2.pDeque = &d;
+      int difference;
+      // exercise
+      difference = it2 - it1;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //     it1        it2
+      assertUnit(it1.id == 0);
+      assertUnit(it1.pDeque == &d);
+      assertUnit(it2.id == 2);
+      assertUnit(it2.pDeque == &d);
+      assertUnit(difference = 2);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // add onto an iterator
+   void test_iterator_addonto_standard()
+   {  // setup
+      custom::deque<int>::iterator it;
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //      it
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      it.id = 0;
+      it.pDeque = &d;
+      // exercise
+      it += 2;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      //                it
+      assertUnit(it.id == 2);
+      assertUnit(it.pDeque == &d);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   /***************************************
+    * FRONT and BACK
+    ***************************************/
+
+    // read the element off the front of the standard list
+   void test_frontRead_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      s = d.front();
+      // verify
+      assertUnit(s == int(11));
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read front on the wrapped state
+   void test_frontRead_wrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      int s(99);
+      // exercise
+      s = d.front();
+      // verify
+      assertUnit(s == int(11));
+      // verify
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read front in the negative wrapped state
+   void test_frontRead_wrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      int s(99);
+      // exercise
+      s = d.front();
+      // verify
+      assertUnit(s == int(11));
+      // verify
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // write the element to the front of the standard list
+   void test_frontWrite_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      d.front() = s;
+      // verify
+      //    +----+----+----+
+      //    | 99 | 26 | 31 |
+      //    +----+----+----+      
+      assertUnit(d.data[0] == 99);
+      d.data[0] = 11;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read the element off the back of the standard list
+   void test_backRead_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      s = d.back();
+      // verify
+      assertUnit(s == int(31));
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read back on the wrapped state
+   void test_backRead_wrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      int s(99);
+      // exercise
+      s = d.back();
+      // verify
+      assertUnit(s == int(31));
+      // verify
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read back in the negative wrapped state
+   void test_backRead_wrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      int s(99);
+      // exercise
+      s = d.back();
+      // verify
+      assertUnit(s == int(31));
+      // verify
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // write the element to the back of the standard list
+   void test_backWrite_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      d.back() = s;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 99 |
+      //    +----+----+----+      
+      assertUnit(d.data[2] == int(99));
+      d.data[2] = int(31);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read an element from the middle of the standard deque
+   void test_subscriptRead_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      s = d[1];
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertUnit(s == 26);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read an element from the middle of the wrapped deque
+   void test_subscriptRead_wrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      int s(99);
+      // exercise
+      s = d[1];
+      // verify
+      assertUnit(s == int(26));
+      // verify
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // read an element from the middle of the negative wrapped deque
+   void test_subscriptRead_wrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      int s(99);
+      // exercise
+      s = d[1];
+      // verify
+      assertUnit(s == int(26));
+      // verify
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      d.iaFront = 0;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // write an element to the middle of the standard deque
+   void test_subscriptWrite_standard()
+   {  // setup
+      //       +----+   +----+   +----+
+      //       | 11 | - | 26 | - | 31 |
+      //       +----+   +----+   +----+
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      d[1] = s;
+      // verify
+      //    +----+----+----+
+      //    | 11 | 99 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      assertUnit(d.data[1] == 99);
+      d.data[1] = 26;
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   /***************************************
+    * PUSH BACK
+    ***************************************/
+
+   // push back to an empty deque
+   void test_pushback_empty()
+   {  // setup
+      custom::deque<int> d;
+      int s(99);
+      // exercise
+      d.push_back(s);
+      // verify
+      //       +----+
+      //       | 99 |
+      //       +----+
+      assertUnit(d.numCapacity == 1);
+      assertUnit(d.numElements == 1);
+      assertUnit(d.iaFront == 0);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 1)
+         assertUnit(d.data[0] == 99);
+      // teardown
+   }
+
+   // push an element when there is excess capacity
+   void test_pushback_room()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 |    |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.data[2] = 50;
+      d.numElements = 2;
+      int s(31);
+      // exercise
+      d.push_back(s);
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      assertStandardFixture(d);
+      // teardown     
+   }
+
+   // push back when the capacity must double
+   void test_pushback_grow()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      d.push_back(s);
+      // verify
+      //    +----+----+----+----+----+----+
+      //    | 11 | 26 | 31 | 99 |    |    |
+      //    +----+----+----+----+----+----+   
+      assertUnit(d.numCapacity == 6);
+      assertUnit(d.numElements == 4);
+      assertUnit(d.iaFront == 0);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 4)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+         assertUnit(d.data[3] == 99);
+      }
+      // teardown      
+   }
+
+   // push back when the capacity must double
+   void test_pushback_growWrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1   2     0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      int s(99);
+      // exercise
+      d.push_back(s);
+      // verify
+      //    iaFront
+      // ia = 0    1    2    3    4    5    
+      //    +----+----+----+----+----+----+
+      //    | 11 | 26 | 31 | 99 |    |    |
+      //    +----+----+----+----+----+----+ 
+      // id = 0    1    2    3
+      assertUnit(d.numCapacity == 6);
+      assertUnit(d.numElements == 4);
+      assertUnit(d.iaFront == 0);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 4)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+         assertUnit(d.data[3] == 99);
+      }
+      // teardown      
+   }
+
+   // push back when the capacity must double
+   void test_pushback_growWrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      int s(99);
+      // exercise
+      d.push_back(s);
+      // verify
+      //    iaFront
+      // ia = 0    1    2    3    4    5    
+      //    +----+----+----+----+----+----+
+      //    | 11 | 26 | 31 | 99 |    |    |
+      //    +----+----+----+----+----+----+ 
+      // id = 0    1    2    3
+      assertUnit(d.numCapacity == 6);
+      assertUnit(d.numElements == 4);
+      assertUnit(d.iaFront == 0);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 4)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+         assertUnit(d.data[3] == 99);
+      }
+      // teardown      
+   }
 
 
 
-    /**********************************************************
-     * DEQUE ITERATOR
-     * Forward and reverse iterator through a deque, just call
-     *********************************************************/
-    template <typename T>
-    class deque <T> ::iterator
-    {
-        friend class ::TestDeque; // give unit tests access to the privates
-    public:
-        //
-        // Construct
-        //
-        iterator()
-        {
-            pDeque = nullptr;
-            id = 0;
-        }
-        iterator(custom::deque<T>* pDeque, int id)
-        {
-            this->pDeque = pDeque;
-            this->id = id;
+   /***************************************
+    * PUSH FRONT
+    ***************************************/
 
-        }
-        iterator(const iterator& rhs)
-        {
-            id = rhs.id;
-            pDeque = rhs.pDeque;
-        }
+    // push front to an empty deque
+   void test_pushfront_empty()
+   {  // setup
+      custom::deque<int> d;
+      int s(99);
+      // exercise
+      d.push_front(s);
+      // verify
+      //     iaFront
+      // ia = -1    0    
+      //     +    +----+
+      //       99 | 99 |
+      //     +    +----+
+      // id =  0       
+      assertUnit(d.numCapacity == 1);
+      assertUnit(d.numElements == 1);
+      assertUnit(d.iaFront == -1);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 1)
+         assertUnit(d.data[0] == 99);
+      // teardown
+   }
 
-        //
-        // Assign
-        //
-        iterator& operator = (const iterator& rhs)
-        {
-            id = rhs.id;
-            pDeque = rhs.pDeque;
-            return *this;
-        }
+   // push an element when there is excess capacity
+   void test_pushfront_room()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 |    |
+      //    +----+----+----+      
+      // id = 0    1    
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.data[2] = 50;
+      d.numElements = 2;
+      int s(31);
+      // exercise
+      d.push_front(s);
+      // verify
+      //     iaFront
+      // ia = -1    0    1    2    
+      //     +    +----+----+----+ 
+      //       31 | 11 | 26 | 31 | 
+      //     +    +----+----+----+
+      // id =  0    1    2    0
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 3);
+      assertUnit(d.iaFront == -1);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 3)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+      }
+      // teardown     
+   }
 
-        //
-        // Compare
-        //
-        bool operator == (const iterator& rhs) const { return &pDeque[id] == &rhs.pDeque[rhs.id]; }
-        bool operator != (const iterator& rhs) const { return &pDeque[id] != &rhs.pDeque[rhs.id]; }
-        
+   // push front when the capacity must double
+   void test_pushfront_grow()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      int s(99);
+      // exercise
+      d.push_front(s);
+      // verify
+      //     iaFront
+      // ia = -1    0    1    2    3    4    5
+      //     +    +----+----+----+----+----+----+
+      //       99 | 26 | 31 | 11 |    |    | 99 |
+      //     +    +----+----+----+----+----+----+
+      // id =  0    1    2    3              0
+      assertUnit(d.numCapacity == 6);
+      assertUnit(d.numElements == 4);
+      assertUnit(d.iaFront == -1);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 4)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+         assertUnit(d.data[5] == 99);
+      }
+      // teardown      
+   }
 
-        // 
-        // Access
-        //
-        const T& operator * () const
-        {
-            return pDeque[id];
-        }
-        T& operator * ()
-        {
-            return pDeque->data[id];
-        }
+   // push front when the capacity must double
+   void test_pushfront_growWrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      int s(99);
+      // exercise
+      d.push_front(s);
+      // verify
+      //     iaFront
+      // ia = -1    0    1    2    3    4    5
+      //     +    +----+----+----+----+----+----+
+      //       99 | 26 | 31 | 11 |    |    | 99 |
+      //     +    +----+----+----+----+----+----+
+      // id =  0    1    2    3              0
+      assertUnit(d.numCapacity == 6);
+      assertUnit(d.numElements == 4);
+      assertUnit(d.iaFront == -1);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 4)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+         assertUnit(d.data[5] == 99);
+      }
+      // teardown      
+   }
 
-        // 
-        // Arithmetic
-        //
-        int operator - (iterator it) const
-        {
-            return id - it.id;
-        }
-        iterator& operator += (int offset)
-        {
-            id += offset;
-            return *this;
-        }
-        iterator& operator ++ ()
-        {
-            ++id;
-            
-            return *this;
-        }
-        iterator operator ++ (int postfix)
-        {
-            iterator temp = *this;
-            ++id;
-            return temp;
-        }
-        iterator& operator -- ()
-        {
-            --id;
-            return *this;
-        }
-        iterator  operator -- (int postfix)
-        {
-            iterator temp = *this;
-            --id;
-            return temp;
-        }
+   // push front when the capacity must double
+   void test_pushfront_growWrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      int s(99);
+      // exercise
+      d.push_back(s);
+      // verify
+      //     iaFront
+      // ia =  0    1    2    3    4    5
+      //     +----+----+----+----+----+----+
+      //     | 11 | 26 | 31 | 99 |    |    |
+      //     +----+----+----+----+----+----+
+      // id =  0    1    1    3         
+      assertUnit(d.numCapacity == 6);
+      assertUnit(d.numElements == 4);
+      assertUnit(d.iaFront == 0);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 4)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+         assertUnit(d.data[3] == 99);
+      }
+      // teardown      
+   }
 
-    private:
+   /***************************************
+    * CLEAR
+    ***************************************/
 
-        // Member variables
-        int id;             // deque index
-        deque<T>* pDeque;
-    };
+    // clear an empty fixture
+   void test_clear_empty()
+   {  // setup
+      custom::deque<int> d;
+      // exercise
+      d.clear();
+      // verify
+      assertEmptyFixture(d);
+   }  // teardown
+
+   void test_clear_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      d.clear();
+      // verify
+      assertEmptyFixture(d);
+   }  // teardown
+
+   /***************************************
+    * POP FRONT and POP BACK
+    ***************************************/
+
+    // remove element off the back of the standard list
+   void test_popback_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      d.pop_back();
+      // verify
+      //    +----+----+----+
+      //    | 11 | 26 |    |
+      //    +----+----+----+      
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 2);
+      assertUnit(d.iaFront == 0);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 2)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+      }      
+      // teardown
+   }
+
+   // remove element off the back of the wrapped state
+   void test_popback_wrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2                   0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      // exercise
+      d.pop_back();
+      // verify
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7     
+      //    +----+----+----+    +    +    +    +    +   
+      //    | 11 | 26 |    | 11   26        11   26     
+      //    +----+----+----+    +    +    +    +    +   
+      // id = 0    1         0    1         0    1     
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 2);
+      assertUnit(d.iaFront == 6);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 2)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+      }
+      // teardown
+   }
+
+   //  remove element off the back of the negative wrapped state
+   void test_popback_wrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      // exercise
+      d.pop_back();
+      // verify
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26        11   26      | 11 | 26 |    |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1         0    1         0    1     
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 2);
+      assertUnit(d.iaFront == -6);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 2)
+      {
+         assertUnit(d.data[0] == 11);
+         assertUnit(d.data[1] == 26);
+      }
+      // teardown
+   }
+
+   // remove element off the front of the standard list
+   void test_popfront_standard()
+   {  // setup
+      //   iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      // id = 0    1     2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      d.pop_front();
+      // verify
+      //        iaFront
+      // ia = 0    1    2 
+      //    +----+----+----+
+      //    |    | 26 | 31 |
+      //    +----+----+----+      
+      // id =       0    1     
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 2);
+      assertUnit(d.iaFront == 1);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 2)
+      {
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+      }
+      // teardown
+   }
+
+   // remove element off the front of the wrapped state
+   void test_popfront_wrap()
+   {  // setup
+      //                                 iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    | 11 | 26 | 31 | 11   26   31   11   26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id = 0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = 6;
+      // exercise
+      d.pop_front();
+      // verify
+      //                                      iaFront
+      // ia = 0    1    2    3    4    5    6    7    8
+      //    +----+----+----+    +    +    +    +    +    +
+      //    |    | 26 | 31 |      26   31        26   31
+      //    +----+----+----+    +    +    +    +    +    +
+      // id =       0    1         0    1         0    1    
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 2);
+      assertUnit(d.iaFront == 7);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 2)
+      {
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+      }
+      // teardown
+   }
+
+   //  remove element off the front of the negative wrapped state
+   void test_popfront_wrapNegative()
+   {  // setup
+      //    iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //       11   26   31   11   26   31 | 11 | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =  0    1    2    0    1    2    0    1    2
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      d.iaFront = -6;
+      // exercise
+      d.pop_front();
+      // verify
+      //         iaFront
+      // ia =  -6   -5   -4   -3   -2   -1   0    1    2    
+      //     +    +    +    +    +    +    +----+----+----+ 
+      //            26   31        26   31 |    | 26 | 31 |
+      //     +    +    +    +    +    +    +----+----+----+
+      // id =        0    1        0    1         0    1   
+      assertUnit(d.numCapacity == 3);
+      assertUnit(d.numElements == 2);
+      assertUnit(d.iaFront == -5);
+      assertUnit(d.data != nullptr);
+      if (d.numElements >= 2)
+      {
+         assertUnit(d.data[1] == 26);
+         assertUnit(d.data[2] == 31);
+      }
+      // teardown
+   }
+
+   /***************************************
+    * SIZE EMPTY
+    ***************************************/
+
+    // size of graph with one node
+   void test_size_empty()
+   {  // setup
+      custom::deque<int> d;
+      // exercise
+      size_t size = d.size();
+      // verify
+      assertUnit(0 == size);
+      assertEmptyFixture(d);
+   }  // teardown
+
+   // size of graph with four nodes
+   void test_size_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      size_t size = d.size();
+      // verify
+      assertUnit(3 == size);
+      assertStandardFixture(d);
+      // teardown
+   }
+
+   // graph with one node
+   void test_empty_empty()
+   {  // setup
+      custom::deque<int> d;
+      // exercise
+      bool empty = d.empty();
+      // verify
+      assertUnit(true == empty);
+      assertEmptyFixture(d);
+   }  // teardown
+
+   // graph with four nodes
+   void test_empty_standard()
+   {  // setup
+      //    +----+----+----+
+      //    | 11 | 26 | 31 |
+      //    +----+----+----+      
+      custom::deque<int> d;
+      setupStandardFixture(d);
+      // exercise
+      bool empty = d.empty();
+      // verify
+      assertUnit(false == empty);
+      assertStandardFixture(d);
+      // teardown
+   }
 
 
-    /****************************************************
-     * DEQUE : CONSTRUCTOR - non-default
-     ***************************************************/
-    template <class T>
-    deque <T> ::deque(int newCapacity)
-    {
-        data = nullptr;
-        numElements = 0;
-        numCapacity = newCapacity;
-        iaFront = 0;
-    }
+   /****************************************************************
+    * Setup Standard Fixture
+    *      iaFront
+    *    ia = 0    1    2
+    *       +----+----+----+
+    *       | 11 | 26 | 31 |
+    *       +----+----+----+
+    *    id = 0    1     2
+    ****************************************************************/
+   void setupStandardFixture(custom::deque<int>& d)
+   {
+      d.data = new int[3];
+      d.data[0] = 11;
+      d.data[1] = 26;
+      d.data[2] = 31;
 
-    /****************************************************
-     * DEQUE : CONSTRUCTOR - copy
-     ***************************************************/
-    template <class T>
-    deque <T> ::deque(const deque <T>& rhs)
-    {
-        data = rhs.data;
-        numCapacity = rhs.numCapacity;
-        numElements = rhs.numElements;
-        iaFront = rhs.iaFront;
-    }
+      d.numCapacity = 3;
+      d.numElements = 3;
+      d.iaFront = 0;
+   }
 
+   /****************************************************************
+    * Verify Empty Fixture
+    ****************************************************************/
+   void assertEmptyFixtureParameters(const custom::deque<int>& d, int line, const char* function)
+   {
+      // verify the member variables
+      assertIndirect(d.iaFront == 0);
+      assertIndirect(d.numElements == 0);
+   }
 
-    /****************************************************
-     * DEQUE : ASSIGNMENT OPERATOR
-     ***************************************************/
-    template <class T>
-    deque <T>& deque <T> :: operator = (const deque <T>& rhs)
-    {
-        
-        iterator itLHS = this->begin();
-        deque<T> rhsCopy(rhs); //making a non-const copy
-        iterator itRHS = rhsCopy.begin();
+   /****************************************************************
+    * Verify Standard Fixture
+    *      iaFront
+    *    ia = 0    1    2
+    *       +----+----+----+
+    *       | 11 | 26 | 31 |
+    *       +----+----+----+
+    *    id = 0    1     2
+    ****************************************************************/
+   void assertStandardFixtureParameters(const custom::deque<int>& d, int line, const char* function)
+   {
+      // verify the member variables
+      assertIndirect(d.numCapacity == 3);
+      assertIndirect(d.iaFront == 0);
+      assertIndirect(d.numElements == 3);
+      assertIndirect(d.data != nullptr);
 
-        if (rhsCopy.data == nullptr) {
-            this->data = nullptr;
-            numCapacity = 0;
-            numElements = 0;
-        }
+      if (d.numCapacity == 3 && d.data != nullptr)
+      {
+         assertIndirect(d.data[0] == 11);
+         assertIndirect(d.data[1] == 26);
+         assertIndirect(d.data[2] == 31);
+      }
+   }
+};
 
-        iterator testValue2 = rhsCopy.end();
-        while (itLHS != this->end() && itRHS != rhsCopy.end()) {
-            *itLHS = *itRHS;
-            ++itLHS;
-            ++itRHS;
-        }
-        if (itLHS != this->end()) {
-            bool test = true;
-        }
-        iterator testValue = rhsCopy.end();
-        auto what = (itRHS == rhsCopy.end());
-        while (itRHS != rhsCopy.end()) { //getting rid of any extra slots
-            push_back(*itRHS);
-            ++itRHS;
-            
-        }
-        
-        numElements = rhsCopy.numElements;
-        
-
-        return *this;
-    }
-
-
-    /**************************************************
-     * DEQUE :: FRONT
-     * Fetch the item that is at the beginning of the deque
-     *************************************************/
-    template <class T>
-    const T& deque <T> ::front() const
-    {
-        return data[iaFront % (int)numCapacity];
-    }
-    template <class T>
-    T& deque <T> ::front()
-    {
-        return data[iaFront % (int)numCapacity];
-    }
-
-    /**************************************************
-     * DEQUE :: BACK
-     * Fetch the item that is at the end of the deque
-     *************************************************/
-    template <class T>
-    const T& deque <T> ::back() const
-    {
-        return data[iaFromID(numElements - 1)];
-    }
-    template <class T>
-    T& deque <T> ::back()
-    {
-        return data[iaFromID(numElements - 1)];
-    }
-
-    /**************************************************
-     * DEQUE :: SUBSCRIPT
-     * Fetch the item in the deque
-     *************************************************/
-    template <class T>
-    const T& deque <T> ::operator[](size_t index) const
-    {
-        
-        return data[iaFromID(index)];
-    }
-    template <class T>
-    T& deque <T> ::operator[](size_t index)
-    {
-        return data[iaFromID(index)];
-    }
-
-    /*****************************************************
-     * DEQUE : POP_BACK
-     *****************************************************/
-    template <class T>
-    void deque <T> ::pop_back()
-    {
-        --numElements;
-    }
-
-    /*****************************************************
-     * DEQUE : POP_FRONT
-     *****************************************************/
-    template <class T>
-    void deque <T> ::pop_front()
-    {
-        numElements--;
-        ++iaFront;
-        if (iaFront == numCapacity)
-            iaFront = 0;
-    }
-
-    /******************************************************
-     * DEQUE : PUSH_BACK
-     ******************************************************/
-    template <class T>
-    void deque <T> ::push_back(const T& t)
-    {
-        if (numElements == numCapacity) {
-            resize(numCapacity * 2);
-        }
-        data[iaFromID(numElements++)] = t;
-        numElements;
-    }
-
-    /******************************************************
-     * DEQUE : PUSH_FRONT
-     ******************************************************/
-    template <class T>
-    void deque <T> ::push_front(const T& t)
-    {
-        if (numElements == numCapacity) {
-            resize(numCapacity * 2);
-        }
-        iaFront--;
-        if (iaFront < 0) {
-            iaFront = numCapacity - 1;
-        }
-        int testVariable = data[iaFront];
-        data[iaFront] = t;
-        numElements++;
-    }
-
-    /****************************************************
-     * DEQUE :: GROW
-     * If the deque is currently empty, allocate to size 2.
-     * Otherwise, double the size
-     ***************************************************/
-    template <class T>
-    void deque <T> ::resize(int newCapacity)
-    {
-        if (numCapacity == 0) { //create two spots if size is 0
-            data = new T[1];
-            this->numCapacity = 1;
-            return;
-        }
-        assert(newCapacity > 0 && newCapacity > numElements);
-
-        T* dataNew = new T[newCapacity]; //the size of T times the number of T's space we want
-        for (size_t id = 0; id < numElements; id++)
-        {
-            dataNew[id] = std::move(this->data[id]);
-        }
-        this->numCapacity = newCapacity;
-        iaFront = 0;
-        delete[] data;
-        data = dataNew;
-
-    }
-
-} // namespace custom
+#endif // DEBUG
