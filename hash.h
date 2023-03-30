@@ -106,7 +106,7 @@ public:
        for (int i = 0; i<10; i++ ) { //this itBucket is an iterator through the array of 10 lists
            if (!buckets[i].empty()) {
                auto testbegin = buckets;
-               auto testEnd = buckets+10;
+               auto testEnd = buckets+9;
                auto testIt = buckets[i].begin();
                return iterator(testbegin, testEnd, testIt);
            }
@@ -116,7 +116,7 @@ public:
    }
    iterator end()
    {
-      return iterator(buckets, buckets+10, buckets->end());
+      return iterator();
    }
    local_iterator begin(size_t iBucket)
    {
